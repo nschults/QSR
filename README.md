@@ -15,15 +15,26 @@ Este Código é parte de uma simulação de um ambiente de NFV/SDN para testes d
 Ambiente da simulação:
 
 Servidor Ubuntu 18.04
+
   Mininet
+  
     OpenFlow 1.3
+    
     MiniNAM
+    
   Ryu
+  
     Rest Router
+    
   Python3
+  
     pandas
+    
     requests
+    
     csv
+    
     numpy
+    
     tkinter
     
