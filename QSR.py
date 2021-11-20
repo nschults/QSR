@@ -329,28 +329,3 @@ if __name__ == "__main__":
     window.geometry('1200x300')
     window.resizable(False, False)
     interfaceGrafica()
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
