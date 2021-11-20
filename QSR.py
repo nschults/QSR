@@ -3,7 +3,7 @@
 
 # # PREVENÇÃO DE ATAQUES DDOS EM NFV/SDN
 # 
-# ## Roteamento seguro comReinforcement Learning
+# ## Roteamento seguro com Reinforcement Learning
 
 # In[1]:
 
@@ -37,8 +37,6 @@ def QLearning(rewards, goal_state=None, gamma=0.99, alpha=0.01, num_episode=1000
     """ 
     Run Q-learning loop for num_episode iterations or till difference between Q is below min_difference.
     """
-#    Q = np.asarray(pd.read_csv('Qvalues.db', sep = ';',header=None))
-
     Q = np.zeros(rewards.shape)
     all_states = np.arange(len(rewards))
     for i in range(num_episode):
@@ -51,13 +49,9 @@ def QLearning(rewards, goal_state=None, gamma=0.99, alpha=0.01, num_episode=1000
         
         action = np.random.choice(np.where(rewards[initial_state] != -float('inf'))[0]) 
         
-#        print(f'ESTADO INICIAL: {Q[initial_state][action]} + {alpha} * ({rewards[initial_state][action]} + {gamma} * {np.max(Q[action])} - {Q[initial_state][action]})')
-
         Q[initial_state][action] = Q[initial_state][action] + alpha * (rewards[initial_state][action] + gamma * np.max(Q[action]) - Q[initial_state][action])
         
         Q[initial_state][action] = (1 - alpha) * Q[initial_state][action] + alpha * (rewards[initial_state][action] + gamma * np.max(Q[action]))
-        
-#        print(f'Q INICIAL: {Q[initial_state][action]}')
 
         cur_state = action
         
@@ -68,19 +62,13 @@ def QLearning(rewards, goal_state=None, gamma=0.99, alpha=0.01, num_episode=1000
             # choose action form states using policy derived from Q
         
             action = np.random.choice(np.where(rewards[cur_state] != -float('inf'))[0])
-            
-#            print(f'ESTADO ATUAL: {Q[cur_state][action]} + {alpha} * ({rewards[cur_state][action]} + {gamma} * {np.max(Q[action])} - {Q[cur_state][action]})')
-
-            #Q[cur_state][action] = Q[cur_state][action] + alpha * (rewards[cur_state][action] + gamma * np.max(Q[action]) - Q[cur_state][action])
-    
+             
             Q[cur_state][action] = (1 - alpha) * Q[cur_state][action] + alpha * (rewards[cur_state][action] + gamma * np.max(Q[action]))
-        
-#            print(f'Q ATUAL: {Q[cur_state][action]}')
 
             cur_state = action
             
-    return np.around(Q/np.max(Q)*100)
-#    return Q/np.max(Q)*100
+#    return np.around(Q/np.max(Q)*100)
+    return Q/np.max(Q)*100
 
 
 # In[20]:
@@ -107,7 +95,6 @@ def selecionaRotas(Q, Qdst):
                 print(f'{Q[i][j]} > {oldQ}')
                 temptable = [nexthop[i][j]] + [Q[i][j]]
                 oldQ = Q[i][j]
-            print(f'Roteador:{j+1} Nexthop: {nexthop[i][j]}, Valor de Q: {Q[i][j]}')
         print('\r\n')
         rtable.append(temptable)
 
