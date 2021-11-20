@@ -171,16 +171,3 @@ refresh(rewards, rewardsDst)
 tree.pack()
 
 window.mainloop()
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
