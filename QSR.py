@@ -3,15 +3,7 @@
 
 # # PREVENÇÃO DE ATAQUES DDOS EM NFV/SDN
 # 
-# ## Roteamento seguro com Reinforcement Learning
-
-# In[1]:
-
-
-get_ipython().system('pip install -q gym')
-get_ipython().system('pip install -q matplotlib')
-get_ipython().system('pip install -q ipython')
-
+# ## Roteamento seguro comReinforcement Learning
 
 # In[2]:
 
@@ -19,7 +11,6 @@ get_ipython().system('pip install -q ipython')
 import pandas as pd
 import requests as rq
 import csv
-import gym
 import random
 import numpy as np
 import copy
@@ -28,50 +19,126 @@ from tkinter import *
 from tkinter import messagebox
 import tkinter.ttk as ttk
 from tkinter.ttk import *
+from collections import namedtuple
+
+import itertools
+import matplotlib
+import matplotlib.style
+import matplotlib.pyplot as plt
+import plotting
+
+matplotlib.style.use('ggplot')
 
 
 # In[3]:
 
 
+#Código fonte Plotting https://github.com/dennybritz/reinforcement-learning/blob/master/lib/plotting.py
+
+EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
+
+def plot_episode_stats(stats, smoothing_window=10, noshow=False):
+    # Plot the episode length over time
+    fig1 = plt.figure(figsize=(10,5))
+    plt.plot(stats.episode_lengths)
+    plt.xlabel("Episódio")
+    plt.ylabel("Tamanho do episódio")
+    plt.title("Tamanho do episódio através do tempo")
+    if noshow:
+        plt.close(fig1)
+    else:
+        plt.show(fig1)
+
+    # Plot the episode reward over time
+    fig2 = plt.figure(figsize=(10,5))
+    rewards_smoothed = pd.Series(stats.episode_rewards).rolling(smoothing_window, min_periods=smoothing_window).mean()
+    plt.plot(rewards_smoothed)
+    plt.xlabel("Episódio")
+    plt.ylabel("Q-Value (Smoothed)")
+    plt.title("Soma dos Q-Values por Episódio".format(smoothing_window))
+    if noshow:
+        plt.close(fig2)
+    else:
+        plt.show(fig2)
+
+    # Plot time steps and episode number
+    fig3 = plt.figure(figsize=(10,5))
+    plt.plot(np.cumsum(stats.episode_lengths), np.arange(len(stats.episode_lengths)))
+    plt.xlabel("Iteração")
+    plt.ylabel("Episódio")
+    plt.title("Iteração por episódio")
+    if noshow:
+        plt.close(fig3)
+    else:
+        plt.show(fig3)
+
+    return fig1, fig2, fig3
+
+
+# In[4]:
+
+
 def QLearning(rewards, goal_state=None, gamma=0.99, alpha=0.01, num_episode=1000, min_difference=1e-5,source=0):
-    """ 
-    Run Q-learning loop for num_episode iterations or till difference between Q is below min_difference.
-    """
+
+    #Inicializa as variáveis
+    
     Q = np.zeros(rewards.shape)
     all_states = np.arange(len(rewards))
+    
+    EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
+    
+    stats = EpisodeStats(
+    episode_lengths = np.zeros(num_episode),
+    episode_rewards = np.zeros(num_episode))
+    
     for i in range(num_episode):
-        
-        Q_old = copy.deepcopy(Q)
-        
-        # initialize state
-
+     
+        #Inicializa o ambiente
+    
+        Q_old = copy.deepcopy(Q)        
         initial_state = all_states[source]
-        
         action = np.random.choice(np.where(rewards[initial_state] != -float('inf'))[0]) 
-        
+               
         Q[initial_state][action] = Q[initial_state][action] + alpha * (rewards[initial_state][action] + gamma * np.max(Q[action]) - Q[initial_state][action])
-        
-        Q[initial_state][action] = (1 - alpha) * Q[initial_state][action] + alpha * (rewards[initial_state][action] + gamma * np.max(Q[action]))
-
+     
         cur_state = action
         
-        # loop for each step of episode, until reaching goal state
+        # Executa as ações até que o número de episódios definido tenham sido executados.
+        
+        t = 0
         
         while cur_state != goal_state:
             
-            # choose action form states using policy derived from Q
-        
+            t += 1
+            
+            # Escolhe a ação de acordo com a política derivada de Q
+                
             action = np.random.choice(np.where(rewards[cur_state] != -float('inf'))[0])
-             
-            Q[cur_state][action] = (1 - alpha) * Q[cur_state][action] + alpha * (rewards[cur_state][action] + gamma * np.max(Q[action]))
+            
+            Q[cur_state][action] = Q[cur_state][action] + alpha * (rewards[cur_state][action] + gamma * np.max(Q[action]) - Q[cur_state][action])
 
+            if rewards[cur_state][action] != -float('inf'):
+                stats.episode_rewards[i] += Q[cur_state][action]
+                stats.episode_lengths[i] = t
+
+            else:
+                stats.episode_rewards[i] += 0
+                stats.episode_lengths[i] = t
+            
             cur_state = action
             
-#    return np.around(Q/np.max(Q)*100)
+            #Salva as informações para o plotting
+        
+
+        
+            
+    plot_episode_stats(stats)
+
+
     return Q/np.max(Q)*100
 
 
-# In[20]:
+# In[5]:
 
 
 def sair():
@@ -85,65 +152,64 @@ def selecionaRotas(Q, Qdst):
     #Seleciona os caminhos com o valor Q mais alto (ORIGEM)
     
     rtable = []
+    
     for i in range(len(nexthop)):
+        
         temptable = []
         oldQ = 0
-        print(f'Roteador {i+1} \r\n')
+        
         for j in range(len(nexthop[i])):
             
             if Q[i][j] > oldQ:
-                print(f'{Q[i][j]} > {oldQ}')
+                
                 temptable = [nexthop[i][j]] + [Q[i][j]]
                 oldQ = Q[i][j]
-        print('\r\n')
+                
         rtable.append(temptable)
-
-        
         
     url = f'http://192.168.0.23:8080/router/all'
     ip = f'{{"route_id":"all"}}'
     x = rq.delete(url,data = ip)
     print(x)
+    
     #Envia os melhores caminhos para a controladora via método POST
     
     for i in range(len(rtable)-1):
 
         url = f'http://192.168.0.23:8080/router/000000000000000{i+1}'
         ip = f'{{"destination":"172.16.20.0/24","gateway":"{rtable[i][0]}"}}'
-        print(ip)
-        x = rq.post(url,data = ip)
-        print(x)
+        
+        if rtable[i][1] != 0:
+            print(ip,url)
+            x = rq.post(url,data = ip)
+            print(x)
         
     #Seleciona os caminhos com o valor Q mais alto (DESTINO)  
     
     rtableDst = []
     
     for i in (range(len(nexthop))):
+        
         temptableDst = ['0',0.0]
         oldQDst = 0
 
         for j in (range(len(nexthop[i]))):
-            print(f'Roteador:{j+1} Nexthop: {nexthop[i][j]}, Valor de Q: {Qdst[i][j]}')
 
             if Qdst[i][j] > oldQDst:
-                print(f'{Qdst[i][j]} > {oldQDst}')
+                
                 temptableDst = [nexthop[i][j]] + [Qdst[i][j]]
                 oldQDst = Qdst[i][j]
 
-                
-        
-        print('\r\n')
         rtableDst.append(temptableDst)
 
             #Envia os melhores caminhos para a controladora via método POST
 
     for i in (range(len(rtableDst))):
 
-        print(i)
         url = f'http://192.168.0.23:8080/router/000000000000000{i+1}'
         ip = f'{{"destination":"172.16.10.0/24","gateway":"{rtableDst[i][0]}"}}'
         if rtableDst[i][1] != 0:
-            print(f'{ip} - {url}')
+            print(ip,url)
             x = rq.post(url,data = ip)
             print(x)
 
@@ -152,14 +218,14 @@ def interfaceGrafica():
     def refresh():
   
         def getQ():
-
-            #Origem e Destino definidos pela interface gráfica
             
             #Recompensas
+            
             rewards = np.asarray(pd.read_csv('rewards.db', sep = ';',header=None))
             rewardsDst = np.asarray(pd.read_csv('rewardsDst.db', sep = ';',header=None))
 
             #Calcula Q
+            
             Q = []
             Qdst = []
 
@@ -181,16 +247,23 @@ def interfaceGrafica():
         selecionaRotas(Q, Qdst)
 
         for i in tree.get_children():
+            
             tree.delete(i)
+            
         for i in treeDst.get_children():
+            
             treeDst.delete(i)
 
         for i in range(len(Q)):
-            tree.insert("", 'end', values=(list(Q[i])))
-        for i in range(len(Qdst)):
-            treeDst.insert("", 'end', values=(list(Qdst[i])))
             
-        #Executa novamente o refresh a cada 30s      
+            tree.insert("", 'end', values=(list(np.around(Q[i]))))
+            
+        for i in range(len(Qdst)):
+            
+            treeDst.insert("", 'end', values=(list(np.around(Qdst[i]))))
+            
+        #Executa novamente o refresh a cada 30s 
+        
         time_label.after(30000, refresh)
     
     #Interface gráfica
@@ -283,10 +356,12 @@ if __name__ == "__main__":
         url = f'http://192.168.0.23:8080/router/000000000000000{r}'
 
         for i in ips.iloc[r-1]:
+            
             if type(i) == str:
+                
                 ip = f'{{"address":"{i}"}}'
                 x = rq.post(url,data = ip)
-                #print(x)
+                print(x)
     
     #Registro dos NextHops
     
@@ -316,3 +391,28 @@ if __name__ == "__main__":
     window.geometry('1200x300')
     window.resizable(False, False)
     interfaceGrafica()
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
