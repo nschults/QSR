@@ -38,3 +38,4 @@ Servidor Ubuntu 18.04
     
     tkinter
     
+    plotting
